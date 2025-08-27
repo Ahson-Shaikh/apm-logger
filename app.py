@@ -3,29 +3,37 @@
 import os
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
-from apm_error_logger import get_logger  # imports the logger with APM handler
+from elasticapm import Client, instrument
 
 SERVICE_NAME = os.getenv("SERVICE_NAME", "elk-test-api")
 ENVIRONMENT = os.getenv("ENVIRONMENT", "dev")
+APM_SERVER_URL = os.getenv("APM_SERVER_URL", "http://localhost:8200")
 
-log = get_logger("elk-test-api")
+# Initialize APM client
+apm_client = Client(
+    service_name=SERVICE_NAME,
+    environment=ENVIRONMENT,
+    server_url=APM_SERVER_URL,
+    # Add secret token if required by your APM server
+    # secret_token=os.getenv("APM_SECRET_TOKEN", ""),
+)
+
+# Instrument the application for performance monitoring
+instrument()
+
 app = FastAPI(title="ELK APM Test API")
 
 # --- Global exception hook so ANY unhandled error is logged + sent to APM ---
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
-    # This prints to console AND ships to Elastic APM as an error
-    log.exception("Unhandled exception", extra={
-        "route": str(request.url),
-        "method": request.method,
-        "service": SERVICE_NAME,
-        "environment": ENVIRONMENT,
-    })
+    # This will automatically send the error to Elastic APM
+    apm_client.capture_exception()
     return JSONResponse(status_code=500, content={"detail": "Internal Server Error"})
 
 @app.get("/health")
 def health():
-    log.info("Health check")
+    # Log info message
+    apm_client.logger.info("Health check")
     return {"status": "ok"}
 
 @app.get("/boom")
@@ -35,22 +43,29 @@ def boom():
 
 @app.get("/zero")
 def zero():
-    # Explicitly catch and log an exception (logger.exception captures traceback)
+    # Explicitly catch and log an exception
     try:
         1 / 0
     except Exception:
-        log.exception("Divide-by-zero in /zero", extra={"route": "/zero"})
+        # Capture the exception in APM
+        apm_client.capture_exception()
         raise HTTPException(status_code=500, detail="Division by zero")
 
 @app.get("/log-error")
 def log_error(msg: str = "Simulated error from /log-error"):
-    # Log an error WITHOUT throwing (still goes to APM because level=ERROR)
-    log.error(msg, extra={"route": "/log-error"})
+    # Log an error message
+    apm_client.logger.error(msg)
     return {"status": "logged", "message": msg}
 
 @app.get("/payment/fail")
 def payment_fail(order_id: str = "ORD-123", user_id: str = "u-abc"):
-    # Structured fields using logger.extra
-    log.error("Payment authorization failed",
-              extra={"route": "/payment/fail", "order_id": order_id, "user_id": user_id, "reason": "card_declined"})
+    # Log error with custom context
+    apm_client.logger.error(
+        "Payment authorization failed",
+        extra={
+            "order_id": order_id,
+            "user_id": user_id,
+            "reason": "card_declined"
+        }
+    )
     return {"status": "logged", "order_id": order_id}

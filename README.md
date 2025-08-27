@@ -1,81 +1,93 @@
-# APM Logger
+# APM Integration Summary
 
-A FastAPI application with integrated Elastic APM error logging and monitoring.
+## What Was Implemented
 
-## Setup
+Your FastAPI application has been successfully integrated with the **official Elastic APM Python agent** (`elastic-apm`). This replaces the custom logger approach with a production-ready APM solution.
 
-### 1. Install Dependencies
+## Key Changes Made
 
-```bash
-pip install fastapi uvicorn requests
+### 1\. Dependencies Added
+
+*   `elastic-apm>=6.24.0` - Official APM agent
+*   `psutil>=7.0.0` - System metrics support
+
+### 2\. Code Updates (`app.py`)
+
+*   **APM Client Initialization**: Configured with service name, environment, and server URL
+*   **Automatic Instrumentation**: Added `instrument()` for performance monitoring
+*   **Error Capture**: Uses `apm_client.capture_exception()` for explicit error tracking
+*   **Structured Logging**: Maintains custom context fields (order\_id, user\_id, reason)
+*   **Global Exception Handler**: Automatically captures all unhandled errors
+
+### 3\. Configuration
+
+*   **Environment Variables**:
+    *   `APM_SERVER_URL` - APM server endpoint
+    *   `SERVICE_NAME` - Service identifier in APM
+    *   `ENVIRONMENT` - Environment tag (dev, staging, prod)
+*   **Optional**: `APM_SECRET_TOKEN` for authenticated APM servers
+
+## Features Available
+
+✅ **Error Tracking**: Automatic capture of exceptions and errors  
+✅ **Performance Monitoring**: HTTP request tracing and metrics  
+✅ **Structured Logging**: Custom context and metadata  
+✅ **Global Error Handling**: Catches all unhandled exceptions  
+✅ **Environment Configuration**: Easy setup for different environments  
+✅ **System Metrics**: CPU, memory, and process monitoring
+
+## Files Created/Updated
+
+*   `app.py` - Main application with APM integration
+*   `requirements.txt` - Dependencies including elastic-apm
+*   `README.md` - Comprehensive setup and usage instructions
+*   `setup_env.sh` - Environment setup script
+*   `test_endpoints.sh` - Endpoint testing script
+*   `APM_INTEGRATION_SUMMARY.md` - This summary
+
+## How to Use
+
+### 1\. Set Environment Variables
+
 ```
-
-### 2. Environment Variables
-
-Create a `.env` file in the project root with the following variables:
-
-```bash
-# APM Configuration
-export APM_SERVER_URL="http://<apm-host>:8200"   # e.g., http://localhost:8200
-export SERVICE_NAME="elk-test-api"
+export APM_SERVER_URL="http://your-apm-server:8200"
+export SERVICE_NAME="your-service-name"
 export ENVIRONMENT="dev"
 ```
 
-Or set them directly in your shell:
+### 2\. Run the Application
 
-```bash
-export APM_SERVER_URL="http://localhost:8200"
-export SERVICE_NAME="elk-test-api"
-export ENVIRONMENT="dev"
 ```
-
-### 3. Run the Application
-
-```bash
 uvicorn app:app --host 0.0.0.0 --port 8000
 ```
 
-## Testing the APM Logger
+### 3\. Test Endpoints
 
-Use these curl commands to test different error scenarios:
-
-### Healthy (no error)
-```bash
-curl -s http://localhost:8000/health
+```
+./test_endpoints.sh
 ```
 
-### Unhandled exception -> APM error (and 500)
-```bash
-curl -s http://localhost:8000/boom
-```
+## APM Agent Behavior
 
-### Handled exception with logger.exception -> APM error (and 500)
-```bash
-curl -s http://localhost:8000/zero
-```
+*   **Automatic Instrumentation**: Monitors HTTP requests, database queries, and more
+*   **Error Queueing**: If APM server is unavailable, events are queued locally
+*   **Performance Metrics**: Collects system and application performance data
+*   **Distributed Tracing**: Ready for multi-service tracing when configured
 
-### Plain error log (no exception) -> APM error (200 response)
-```bash
-curl -s "http://localhost:8000/log-error?msg=Something%20broke%20but%20we%20caught%20it"
-```
+## Next Steps
 
-### Structured error with extra attributes (order_id, user_id, reason)
-```bash
-curl -s "http://localhost:8000/payment/fail?order_id=ORD-999&user_id=u-42"
-```
+1.  **Configure APM Server**: Set up Elastic APM server or use cloud APM service
+2.  **Custom Metrics**: Add business-specific metrics using `apm_client.metrics`
+3.  **User Context**: Set user information with `apm_client.set_user_context`
+4.  **Custom Spans**: Create custom performance spans for business logic
+5.  **Alerting**: Configure APM alerts for error thresholds
 
-## API Endpoints
+## Benefits Over Custom Logger
 
-- `/health` - Health check endpoint
-- `/boom` - Triggers an unhandled exception for testing APM error capture
-- `/zero` - Demonstrates handled exceptions with structured logging
-- `/log-error` - Logs errors without throwing exceptions
-- `/payment/fail` - Shows structured error logging with custom attributes
+*   **Production Ready**: Official Elastic APM agent with enterprise support
+*   **Performance Monitoring**: Automatic request tracing and performance metrics
+*   **Better Integration**: Seamless integration with Elastic Stack
+*   **Advanced Features**: Distributed tracing, custom metrics, user context
+*   **Maintenance**: Actively maintained with regular updates and security patches
 
-## Features
-
-- Global exception handler that captures all unhandled errors
-- Structured logging with extra context fields
-- Integration with Elastic APM for error monitoring
-- Environment-based configuration
-- Service name and environment tagging for all logs
+Your application is now ready for production APM monitoring! 🚀
