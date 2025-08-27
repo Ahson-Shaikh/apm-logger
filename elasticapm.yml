@@ -1,0 +1,45 @@
+# Elastic APM Agent Configuration
+# This file configures the APM agent for proper transaction capture
+
+# Service configuration
+service_name: ${SERVICE_NAME:elk-test-api}
+environment: ${ENVIRONMENT:dev}
+
+# APM Server configuration
+server_url: ${APM_SERVER_URL:http://localhost:8200}
+secret_token: ${APM_SECRET_TOKEN:}
+
+# Transaction and span configuration
+transaction_max_spans: 100
+transaction_sample_rate: 1.0
+span_min_duration: 0.0
+
+# Performance monitoring
+collect_local_variables: errors
+capture_span_stack_traces: true
+
+# HTTP request tracking
+capture_headers: true
+capture_body: errors
+
+# Instrumentation settings
+instrument: true
+
+# Logging configuration
+log_level: info
+
+# Metrics collection
+metrics_interval: 30s
+
+# Central configuration
+central_config: false
+
+# Debug mode
+debug: ${APM_DEBUG:false}
+
+# Additional instrumentation
+instrument_http_requests: true
+instrument_http_responses: true
+instrument_database_queries: true
+instrument_redis: true
+instrument_elasticsearch: true 
